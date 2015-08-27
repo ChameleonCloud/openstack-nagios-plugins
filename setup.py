@@ -76,6 +76,7 @@ setup(
         'python-neutronclient', 
         'python-cinderclient',
         'python-ceilometerclient',
+        'python-ironicclient',
     ],
 
     # To provide executable scripts, use entry points in preference to the
@@ -91,6 +92,7 @@ setup(
             'check_keystone-token=openstacknagios.keystone.Token:main',
             'check_ceilometer-statistics=openstacknagios.ceilometer.Statistics:main',
             'check_rally-results=openstacknagios.rally.Results:main',
+            'check_ironic-nodes=openstacknagios.ironic.Nodes:main',
         ],
     },
 )

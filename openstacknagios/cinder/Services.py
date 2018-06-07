@@ -46,6 +46,7 @@ class CinderServices(osnag.Resource):
                               self.openstack['tenant_name'], 
                               self.openstack['auth_url'],
                               insecure=self.openstack['insecure'],
+                              region_name=self.openstack['region_name'],
                               cacert=self.openstack['cacert'])
         except Exception as e:
            self.exit_error(str(e))

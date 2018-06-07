@@ -40,7 +40,7 @@ class Resource(NagiosResource):
 
     def get_openstack_vars(self,args=None):
 
-       os_vars = dict(username='', password='',tenant_name='',auth_url='', cacert='')
+       os_vars = dict(username='', password='',tenant_name='',auth_url='', cacert='', region_name='')
 
        if args.filename:
           config = ConfigParser.RawConfigParser()

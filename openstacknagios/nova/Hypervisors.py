@@ -42,6 +42,7 @@ class NovaHypervisors(osnag.Resource):
                             self.openstack['tenant_name'],
                             auth_url    = self.openstack['auth_url'],
                             cacert      = self.openstack['cacert'],
+                            region_name = self.openstack['region_name'],
                             insecure    = self.openstack['insecure'])
 
         except Exception as e:

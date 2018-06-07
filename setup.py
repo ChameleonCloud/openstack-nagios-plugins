@@ -90,6 +90,7 @@ setup(
             'check_neutron-agents=openstacknagios.neutron.Agents:main',
             'check_neutron-floatingips=openstacknagios.neutron.Floatingips:main',
             'check_keystone-token=openstacknagios.keystone.Token:main',
+            'check_keystone-endpoints=openstacknagios.keystone.Endpoints:main',
             'check_ceilometer-statistics=openstacknagios.ceilometer.Statistics:main',
             'check_rally-results=openstacknagios.rally.Results:main',
             'check_ironic-nodes=openstacknagios.ironic.Nodes:main',

@@ -3,4 +3,5 @@ develop
 openstacknagios.egg-info
 dist
 build
+venv
 Makefile

@@ -14,23 +14,21 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#  
+#
 
 """
   Nagios/Icinga plugin to check ceilometer statistics.
 
-  Returns the statistic of the chosen meter. This also returns the age of the 
+  Returns the statistic of the chosen meter. This also returns the age of the
   last sample used to aggregate. So this check can also be used to verify freshness
   of samples in the ceilometer DB. (or of course to check the value).
 
 """
 
 import openstacknagios.openstacknagios as osnag
+from ceilometerclient.client import Client
 
-import keystoneclient.v2_0.client as ksclient
-import ceilometerclient.v2.client as ceilclient
-
-import datetime 
+import datetime
 from pytz import timezone
 import pytz
 
@@ -41,46 +39,28 @@ date_format_tz = "%Y-%m-%dT%H:%M:%S %Z"
 class CeilometerStatistics(osnag.Resource):
     """
     """
-
-    def __init__(self, args=None):
-        self.meter     = args.meter
-        self.tframe    = datetime.timedelta(minutes=int(args.tframe))
-        self.tzone     = timezone(args.tzone)
-        self.verbose   = args.verbose
-        self.aggregate = args.aggregate
-        self.openstack = self.get_openstack_vars(args=args)
-        osnag.Resource.__init__(self)
+    def __init__(self, meter=None, tframe=None, tzone=None, aggregate=None,
+                 args=None):
+        self.meter     = meter
+        self.tframe    = datetime.timedelta(minutes=int(tframe))
+        self.tzone     = timezone(tzone)
+        self.aggregate = aggregate
+        osnag.Resource.__init__(self, args=args)
 
     def probe(self):
         try:
-           keystone=ksclient.Client(username    = self.openstack['username'],
-                                    password    = self.openstack['password'],
-                                    tenant_name = self.openstack['tenant_name'],
-                                    auth_url    = self.openstack['auth_url'],
-                                    cacert      = self.openstack['cacert'],
-                                    region_name = self.openstack['region_name'],
-                                    insecure    = self.openstack['insecure'])
-        except Exception as e:
-           self.exit_error('cannot get token ' + str(e))
-
-
-        try:
-           ceilometer = ceilclient.Client(endpoint = keystone.service_catalog.url_for(endpoint_type='public',service_type='metering'),
-                                          token        = lambda: keystone.auth_token,
-                                          cacert       = self.openstack['cacert'],
-                                          region_name  = self.openstack['region_name'],
-                                          insecure     = self.openstack['insecure'])
+           ceilometer = ceilclient.Client('2', session=self.session)
         except Exception as e:
            self.exit_error('cannot start ceil ' + str(e))
 
-        now=datetime.datetime.now(self.tzone)
-   
-        tstart=now - self.tframe
-        query=[]
+        now = datetime.datetime.now(self.tzone)
+
+        tstart = now - self.tframe
+        query = []
         query.append({'field': 'timestamp','op':'gt','value':tstart.strftime(date_format)})
 
         try:
-           teste=ceilometer.statistics.list(self.meter, q=query)
+           teste = ceilometer.statistics.list(self.meter, q=query)
            #print "meters = %s" % ceilometer.meters.list()
            #print "resources = %s" % ceilometer.resources.list()
            #print "alarms = %s" % ceilometer.alarms.list()
@@ -112,7 +92,7 @@ class CeilometerStatistics(osnag.Resource):
              print 'duration:       %s minutes' % (int(getattr(t,'duration',''))/60)
              print 'avg:            %s ' % getattr(t,'avg','') + getattr(t,'unit','')
              print 'sum:            %s ' % getattr(t,'sum','') + getattr(t,'unit','')
-             print 
+             print
 
 @osnag.guarded
 def main():
@@ -146,15 +126,13 @@ def main():
     args = argp.parse_args()
 
     check = osnag.Check(
-        CeilometerStatistics(args=args),
+        CeilometerStatistics(meter=args.meter, tframe=args.tframe, tzone=args.tzone,
+                             aggregate=args.aggregate, args=args),
         osnag.ScalarContext('age', args.warn_age, args.critical_age),
         osnag.ScalarContext('count', args.warn_count, args.critical_count),
         osnag.ScalarContext('value', args.warn, args.critical),
-        osnag.Summary(show=['age','count','value'])
-        )
+        osnag.Summary(show=['age','count','value']))
     check.main(verbose=args.verbose, timeout=args.timeout)
 
 if __name__ == '__main__':
     main()
-
-

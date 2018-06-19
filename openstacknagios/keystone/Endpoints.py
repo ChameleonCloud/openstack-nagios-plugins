@@ -21,37 +21,22 @@
  The check will list endpoints and warn if there are more than expected.
 """
 
-import json
-import time
 import openstacknagios.openstacknagios as osnag
-
-import keystoneclient.v2_0.client as ksclient
-
+from keystoneclient.client import Client
 
 class KeystoneEndpoints(osnag.Resource):
     """
     Nagios/Icinga plugin to check keystone.
-
     """
-
-    def __init__(self, args=None):
-        self.openstack = self.get_openstack_vars(args=args)
-        osnag.Resource.__init__(self)
 
     def probe(self):
         try:
-           keystone=ksclient.Client(username    = self.openstack['username'],
-                                    password    = self.openstack['password'],
-                                    tenant_name = self.openstack['tenant_name'],
-                                    auth_url    = self.openstack['auth_url'],
-                                    cacert      = self.openstack['cacert'],
-                                    region_name = self.openstack['region_name'],
-                                    insecure    = self.openstack['insecure'])
+           client = Client(session=self.session)
         except Exception as e:
            self.exit_error('cannot create keystone client')
 
         try:
-            endpoints = keystone.service_catalog.get_endpoints()
+            endpoints = client.service_catalog.get_endpoints()
         except Exception as e:
             self.exit_error('cannot get endpoints')
 
@@ -72,10 +57,8 @@ def main():
     check = osnag.Check(
         KeystoneEndpoints(args=args),
         osnag.ScalarContext('endpoints', args.warn, args.critical),
-        osnag.Summary(show=['endpoints'])
-        )
+        osnag.Summary(show=['endpoints']))
     check.main(verbose=args.verbose, timeout=args.timeout)
 
 if __name__ == '__main__':
     main()
-

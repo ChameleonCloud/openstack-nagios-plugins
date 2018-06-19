@@ -13,7 +13,7 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#  
+#
 
 """
     Nagios plugin to check running nova images.
@@ -24,27 +24,18 @@ import time
 import openstacknagios.openstacknagios as osnag
 
 from novaclient.client import Client
+from novaclient.v2 import images
 
 
 class NovaImages(osnag.Resource):
     """
         Lists nova images and gets timing
     """
-
-    def __init__(self, args=None):
-        self.openstack = self.get_openstack_vars(args=args)
-        osnag.Resource.__init__(self)
-
     def probe(self):
         start = time.time()
         try:
-            nova = Client('2', self.openstack['username'], 
-                          self.openstack['password'], 
-                          self.openstack['tenant_name'],
-                          auth_url=self.openstack['auth_url'],
-                          cacert=self.openstack['cacert'],
-                          insecure=self.openstack['insecure'])
-            nova.images.list()
+            nova = Client('2', session=self.session)
+            images.GlanceManager(nova).list()
         except Exception as e:
             self.exit_error(str(e))
 
@@ -65,10 +56,10 @@ def main():
     args = argp.parse_args()
 
     check = osnag.Check(
-        NovaImages(args=args),
+        NovaImages(args),
         osnag.ScalarContext('gettime', args.warn, args.critical),
         osnag.Summary(show=['gettime'])
-        )
+    )
     check.main(verbose=args.verbose,  timeout=args.timeout)
 
 if __name__ == '__main__':

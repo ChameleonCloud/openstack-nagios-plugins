@@ -23,18 +23,12 @@
 """
 
 import subprocess
-
 import openstacknagios.openstacknagios as osnag
 
 class IronicNodes(osnag.Resource):
     """
     Determines the status of the ironic nodes.
-
     """
-
-    def __init__(self, args=None):
-        self.openstack = self.get_openstack_vars(args=args)
-
     def probe(self):
         # Getting the Python Ironic client to talk SSL is a dark art
         # Use the command line client instead
@@ -46,7 +40,7 @@ class IronicNodes(osnag.Resource):
 
         lines = out.splitlines()[1:]
 
-        stati=dict(maintenance=0, total=0)
+        stati = dict(maintenance=0, total=0)
 
         for node in lines:
            stati['total'] += 1
@@ -71,8 +65,7 @@ def main():
         IronicNodes(args=args),
         osnag.ScalarContext('maintenance', args.warn, args.critical),
         osnag.ScalarContext('total', '0:', '@0'),
-        osnag.Summary(show=['maintenance','total'])
-        )
+        osnag.Summary(show=['maintenance','total']))
     check.main(verbose=args.verbose,  timeout=args.timeout)
 
 if __name__ == '__main__':

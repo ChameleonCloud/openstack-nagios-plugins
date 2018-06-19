@@ -14,7 +14,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # http://packaging.python.org/en/latest/tutorial.html#version
-    version='1.0.5',
+    version='1.1.0',
 
     description='nagios/icinga plugins to monitor an openstack installation',
     long_description=long_description,
@@ -84,11 +84,14 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
+            'check_nova-images=openstacknagios.nova.Images:main',
             'check_nova-services=openstacknagios.nova.Services:main',
             'check_nova-hypervisors=openstacknagios.nova.Hypervisors:main',
             'check_cinder-services=openstacknagios.cinder.Services:main',
             'check_neutron-agents=openstacknagios.neutron.Agents:main',
             'check_neutron-floatingips=openstacknagios.neutron.Floatingips:main',
+            'check_neutron-networkipavailabilities=openstacknagios.neutron.Networkipavailabilities:main',
+            'check_neutron-routers=openstacknagios.neutron.Routers:main',
             'check_keystone-token=openstacknagios.keystone.Token:main',
             'check_keystone-endpoints=openstacknagios.keystone.Endpoints:main',
             'check_ceilometer-statistics=openstacknagios.ceilometer.Statistics:main',

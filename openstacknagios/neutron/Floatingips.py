@@ -14,7 +14,7 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#  
+#
 """
    Nagios/Icinga plugin to check floating ip's.
    Counts the assigned ip's (= used + unused).
@@ -23,48 +23,20 @@
 """
 
 import openstacknagios.openstacknagios as osnag
-
-import json
-
-import keystoneclient.v2_0.client as ksclient
-
-from neutronclient.neutron import client
-
-
+from neutronclient.neutron.client import Client
 
 class NeutronFloatingips(osnag.Resource):
     """
     Determines the number of assigned (used and unused) floating ip's
-
     """
-
-    def __init__(self, args=None):
-        self.openstack = self.get_openstack_vars(args=args)
-        osnag.Resource.__init__(self)
-
     def probe(self):
         try:
-           keystone=ksclient.Client(username    = self.openstack['username'],
-                                    password    = self.openstack['password'],
-                                    tenant_name = self.openstack['tenant_name'],
-                                    auth_url    = self.openstack['auth_url'],
-                                    cacert      = self.openstack['cacert'],
-                                    region_name = self.openstack['region_name'],
-                                    insecure    = self.openstack['insecure'])
-        except Exception as e:
-           self.exit_error('cannot get token ' + str(e))
-         
-        try:
-           neutron = client.Client('2.0', endpoint_url = keystone.service_catalog.url_for(endpoint_type='public',service_type='network'),
-                                          token        = keystone.auth_token, 
-                                          ca_cert      = self.openstack['cacert'],
-                                          region_name  = self.openstack['region_name'],
-                                          insecure     = self.openstack['insecure'])
+           neutron = Client('2.0', session=self.session)
         except Exception as e:
            self.exit_error('cannot load ' + str(e))
 
         try:
-           result=neutron.list_floatingips()
+           result = neutron.list_floatingips()
         except Exception as e:
            self.exit_error(str(e))
 
@@ -100,4 +72,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

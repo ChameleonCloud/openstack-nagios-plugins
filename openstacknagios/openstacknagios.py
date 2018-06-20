@@ -31,16 +31,16 @@ from keystoneauth1 import loading
 from os import environ as env
 import sys
 
+DEFAULT_API_VERSION = '2'
+DEFAULT_AUTH_TYPE = 'v3password'
 
 class Resource(NagiosResource):
     """
     Base definition of OpenStack Nagios resource
     """
-    DEFAULT_API_VERSION = '2'
-
     def __init__(self, args=None):
         NagiosResource.__init__(self)
-        self.api_version = args.os_api_version or self.DEFAULT_API_VERSION
+        self.api_version = args.os_api_version or DEFAULT_API_VERSION
 
         auth = loading.cli.load_from_argparse_arguments(args)
         sess = loading.session.load_from_argparse_arguments(args)
@@ -80,7 +80,7 @@ class ArgumentParser(ArgArgumentParser):
     def __init__(self, description, epilog=''):
         ArgArgumentParser.__init__(self, description=description, epilog=epilog)
         argv = sys.argv[1:]
-        loading.cli.register_argparse_arguments(self, argv)
+        loading.cli.register_argparse_arguments(self, argv, DEFAULT_AUTH_TYPE)
         loading.session.register_argparse_arguments(self)
         loading.adapter.register_argparse_arguments(self)
 

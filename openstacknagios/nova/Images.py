@@ -34,7 +34,7 @@ class NovaImages(osnag.Resource):
     def probe(self):
         start = time.time()
         try:
-            nova = Client('2', session=self.session)
+            nova = Client(self.api_version, session=self.session)
             images.GlanceManager(nova).list()
         except Exception as e:
             self.exit_error(str(e))

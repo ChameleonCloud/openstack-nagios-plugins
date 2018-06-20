@@ -35,7 +35,7 @@ class NeutronAgents(osnag.Resource):
 
     def probe(self):
         try:
-           neutron = Client('2.0', session=self.session)
+           neutron = Client(self.api_version, session=self.session)
         except Exception as e:
            self.exit_error('cannot load ' + str(e))
 

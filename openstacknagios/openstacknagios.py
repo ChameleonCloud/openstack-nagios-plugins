@@ -36,8 +36,12 @@ class Resource(NagiosResource):
     """
     Base definition of OpenStack Nagios resource
     """
+    DEFAULT_API_VERSION = '2'
+
     def __init__(self, args=None):
         NagiosResource.__init__(self)
+        self.api_version = args.os_api_version or self.DEFAULT_API_VERSION
+
         auth = loading.cli.load_from_argparse_arguments(args)
         sess = loading.session.load_from_argparse_arguments(args)
         # TODO: loading Adapter parameters automatically is not yet supported.
@@ -48,7 +52,7 @@ class Resource(NagiosResource):
             interface=args.os_interface,
             region_name=args.os_region_name,
             endpoint_override=args.os_endpoint_override,
-            version=args.os_api_version)
+            version=self.api_version)
 
     def exit_error(self, text):
        print 'UNKNOWN - ' + text
@@ -76,9 +80,9 @@ class ArgumentParser(ArgArgumentParser):
     def __init__(self, description, epilog=''):
         ArgArgumentParser.__init__(self, description=description, epilog=epilog)
         argv = sys.argv[1:]
-        loading.adapter.register_argparse_arguments(self)
         loading.cli.register_argparse_arguments(self, argv)
         loading.session.register_argparse_arguments(self)
+        loading.adapter.register_argparse_arguments(self)
 
         self.add_argument('-v', '--verbose', action='count', default=0,
                           help='increase output verbosity (use up to 3 times)'

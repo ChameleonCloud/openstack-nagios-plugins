@@ -49,7 +49,7 @@ class CeilometerStatistics(osnag.Resource):
 
     def probe(self):
         try:
-           ceilometer = ceilclient.Client('2', session=self.session)
+           ceilometer = ceilclient.Client(self.api_version, session=self.session)
         except Exception as e:
            self.exit_error('cannot start ceil ' + str(e))
 

@@ -35,7 +35,7 @@ class NovaHypervisors(osnag.Resource):
 
     def probe(self):
         try:
-           nova = Client('2', session=self.session)
+           nova = Client(self.api_version, session=self.session)
         except Exception as e:
            self.exit_error(str(e))
 

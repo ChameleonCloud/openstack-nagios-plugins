@@ -36,7 +36,7 @@ class CinderServices(osnag.Resource):
 
     def probe(self):
         try:
-           cinder=Client('2', session=self.session)
+           cinder=Client(self.api_version, session=self.session)
         except Exception as e:
            self.exit_error(str(e))
 

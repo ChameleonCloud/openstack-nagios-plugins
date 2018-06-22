@@ -22,7 +22,7 @@
 """
 
 import openstacknagios.openstacknagios as osnag
-from keystoneclient.client import Client
+from keystoneclient import client
 
 class KeystoneEndpoints(osnag.Resource):
     """
@@ -31,14 +31,16 @@ class KeystoneEndpoints(osnag.Resource):
 
     def probe(self):
         try:
-           client = Client(session=self.session)
+           keystone = client.Client(version=self.api_version,
+                                    interface='public', session=self.session,
+                                    region_name=self.region_name)
         except Exception as e:
-           self.exit_error('cannot create keystone client')
+           self.exit_error('cannot create keystone client: ' + str(e))
 
         try:
-            endpoints = client.service_catalog.get_endpoints()
+            endpoints = keystone.endpoints.list()
         except Exception as e:
-            self.exit_error('cannot get endpoints')
+            self.exit_error('cannot get endpoints: ' + str(e))
 
         yield osnag.Metric('endpoints', len(endpoints), min=0)
 

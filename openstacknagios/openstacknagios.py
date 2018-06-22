@@ -31,8 +31,8 @@ from keystoneauth1 import loading
 from os import environ as env
 import sys
 
-DEFAULT_API_VERSION = '2'
 DEFAULT_AUTH_TYPE = 'v3password'
+DEFAULT_API_VERSION = '2'
 
 class Resource(NagiosResource):
     """
@@ -40,19 +40,10 @@ class Resource(NagiosResource):
     """
     def __init__(self, args=None):
         NagiosResource.__init__(self)
-        self.api_version = args.os_api_version or DEFAULT_API_VERSION
-
         auth = loading.cli.load_from_argparse_arguments(args)
-        sess = loading.session.load_from_argparse_arguments(args)
-        # TODO: loading Adapter parameters automatically is not yet supported.
-        # This is due to missing functionality in keystoneauth
-        self.session = adapter.Adapter(sess, auth=auth,
-            service_type=args.os_service_type,
-            service_name=args.os_service_name,
-            interface=args.os_interface,
-            region_name=args.os_region_name,
-            endpoint_override=args.os_endpoint_override,
-            version=self.api_version)
+        self.session = loading.session.load_from_argparse_arguments(args, auth=auth)
+        self.api_version = args.os_api_version
+        self.region_name = args.os_region_name
 
     def exit_error(self, text):
        print 'UNKNOWN - ' + text
@@ -82,8 +73,22 @@ class ArgumentParser(ArgArgumentParser):
         argv = sys.argv[1:]
         loading.cli.register_argparse_arguments(self, argv, DEFAULT_AUTH_TYPE)
         loading.session.register_argparse_arguments(self)
-        loading.adapter.register_argparse_arguments(self)
+
+        # (diurnalist) It would be nicer to load adapter arguments automatically
+        # using `loading.adapter.register_argparse_arguments`, but there is
+        # currently no way to automatically _load_ those arguments after they've
+        # been registered. Also, using the adapter doesn't work very well with
+        # all clients (neutronclient in particular hard-codes a version prefix
+        # into all endpoint URLs, breaking the version discovery done in the
+        # adapter by default.) So we just provide a few arguments that are
+        # useful to us and ignore the rest.
+        self.add_argument('--os-api-version', default=DEFAULT_API_VERSION,
+                          help='Minimum Major API version within a given '
+                               'Major API version for client selection and '
+                               'endpoint URL discovery.')
+        self.add_argument('--os-region-name',
+                          help='The default region_name for endpoint URL '
+                               'discovery.')
 
         self.add_argument('-v', '--verbose', action='count', default=0,
-                          help='increase output verbosity (use up to 3 times)'
-                               '(not everywhere implemented)')
+                          help='increase output verbosity (use up to 3 times)')

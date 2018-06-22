@@ -23,7 +23,7 @@
 """
 
 import openstacknagios.openstacknagios as osnag
-from cinderclient.client import Client
+from cinderclient import client
 
 class CinderServices(osnag.Resource):
     """
@@ -36,7 +36,7 @@ class CinderServices(osnag.Resource):
 
     def probe(self):
         try:
-           cinder=Client(self.api_version, session=self.session)
+           cinder=client.Client(self.api_version, session=self.session, region_name=self.region_name)
         except Exception as e:
            self.exit_error(str(e))
 

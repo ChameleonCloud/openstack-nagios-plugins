@@ -21,9 +21,8 @@
     This corresponds to the output of 'nova hypervisor-stats'
 """
 
-from novaclient.client import Client
-
 import openstacknagios.openstacknagios as osnag
+from novaclient import client
 
 class NovaHypervisors(osnag.Resource):
     """
@@ -35,7 +34,7 @@ class NovaHypervisors(osnag.Resource):
 
     def probe(self):
         try:
-           nova = Client(self.api_version, session=self.session)
+           nova = client.Client(self.api_version, session=self.session, region_name=self.region_name)
         except Exception as e:
            self.exit_error(str(e))
 

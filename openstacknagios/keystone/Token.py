@@ -33,7 +33,7 @@ class KeystoneToken(osnag.Resource):
     def probe(self):
         start = time.time()
         try:
-           Client(session=self.session)
+           Client(session=self.session, region_name=self.region_name)
         except Exception as e:
            self.exit_error('cannot get token')
 

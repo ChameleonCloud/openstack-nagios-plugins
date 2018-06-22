@@ -26,7 +26,7 @@
 """
 
 import openstacknagios.openstacknagios as osnag
-from ceilometerclient.client import Client
+from ceilometerclient import client
 
 import datetime
 from pytz import timezone
@@ -49,7 +49,7 @@ class CeilometerStatistics(osnag.Resource):
 
     def probe(self):
         try:
-           ceilometer = ceilclient.Client(self.api_version, session=self.session)
+           ceilometer = client.Client(self.api_version, session=self.session, region_name=self.region_name)
         except Exception as e:
            self.exit_error('cannot start ceil ' + str(e))
 

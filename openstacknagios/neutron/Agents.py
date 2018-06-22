@@ -22,7 +22,7 @@
 """
 
 import openstacknagios.openstacknagios as osnag
-from neutronclient.neutron.client import Client
+from neutronclient.neutron import client
 
 class NeutronAgents(osnag.Resource):
     """
@@ -35,14 +35,14 @@ class NeutronAgents(osnag.Resource):
 
     def probe(self):
         try:
-           neutron = Client(self.api_version, session=self.session)
+           neutron = client.Client(self.api_version, session=self.session, region_name=self.region_name)
         except Exception as e:
            self.exit_error('cannot load ' + str(e))
 
         try:
-           result = neutron.list_agents(host=self.host,binary=self.binary)
+           result = neutron.list_agents(host=self.host, binary=self.binary)
         except Exception as e:
-           self.exit_error(str(e))
+           self.exit_error('list_agents: ' + str(e))
 
         stati = dict(up=0, disabled=0, down=0, total=0)
 

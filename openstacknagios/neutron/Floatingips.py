@@ -23,7 +23,7 @@
 """
 
 import openstacknagios.openstacknagios as osnag
-from neutronclient.neutron.client import Client
+from neutronclient.neutron import client
 
 class NeutronFloatingips(osnag.Resource):
     """
@@ -31,7 +31,7 @@ class NeutronFloatingips(osnag.Resource):
     """
     def probe(self):
         try:
-           neutron = Client(self.api_version, session=self.session)
+           neutron = client.Client(self.api_version, session=self.session, region_name=self.region_name)
         except Exception as e:
            self.exit_error('cannot load ' + str(e))
 
@@ -66,8 +66,7 @@ def main():
         NeutronFloatingips(args=args),
         osnag.ScalarContext('assigned', args.warn, args.critical),
         osnag.ScalarContext('used'),
-        osnag.Summary(show=['assigned','used'])
-        )
+        osnag.Summary(show=['assigned','used']))
     check.main(verbose=args.verbose, timeout=args.timeout)
 
 if __name__ == '__main__':

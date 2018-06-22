@@ -22,10 +22,8 @@
 
 import time
 import openstacknagios.openstacknagios as osnag
-
-from novaclient.client import Client
+from novaclient import client
 from novaclient.v2 import images
-
 
 class NovaImages(osnag.Resource):
     """
@@ -34,7 +32,7 @@ class NovaImages(osnag.Resource):
     def probe(self):
         start = time.time()
         try:
-            nova = Client(self.api_version, session=self.session)
+            nova = client.Client(self.api_version, session=self.session, region_name=self.region_name)
             images.GlanceManager(nova).list()
         except Exception as e:
             self.exit_error(str(e))

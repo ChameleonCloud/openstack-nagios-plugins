@@ -22,9 +22,8 @@
     This corresponds to the output of 'nova service-list'.
 """
 
+from novaclient import client
 import openstacknagios.openstacknagios as osnag
-
-from novaclient.client import Client
 
 class NovaServices(osnag.Resource):
     """
@@ -37,7 +36,7 @@ class NovaServices(osnag.Resource):
 
     def probe(self):
         try:
-           nova = Client(self.api_version, session=self.session)
+           nova = client.Client(self.api_version, session=self.session, region_name=self.region_name)
         except Exception as e:
            self.exit_error(str(e))
 

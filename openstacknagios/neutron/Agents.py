@@ -14,60 +14,37 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#  
+#
 
 """
  Nagios/Icinga plugin to check running neutron agents.
  This corresponds to the output of 'neutron agent-list'.
 """
 
-import json
 import openstacknagios.openstacknagios as osnag
-
-import keystoneclient.v2_0.client as ksclient
-
 from neutronclient.neutron import client
-
 
 class NeutronAgents(osnag.Resource):
     """
     Determines the status of the neutron agents.
-
     """
-
     def __init__(self, binary=None, host=None, args=None):
         self.binary    = binary
         self.host      = host
-        self.openstack = self.get_openstack_vars(args=args)
-        osnag.Resource.__init__(self)
+        osnag.Resource.__init__(self, args)
 
     def probe(self):
         try:
-           keystone=ksclient.Client(username    = self.openstack['username'],
-                                    password    = self.openstack['password'],
-                                    tenant_name = self.openstack['tenant_name'],
-                                    auth_url    = self.openstack['auth_url'],
-                                    cacert      = self.openstack['cacert'],
-                                    region_name = self.openstack['region_name'],
-                                    insecure    = self.openstack['insecure'])
-        except Exception as e:
-           self.exit_error('cannot get token ' + str(e))
-         
-        try:
-           neutron = client.Client('2.0', endpoint_url = keystone.service_catalog.url_for(endpoint_type='public',service_type='network'),
-                                          token        = keystone.auth_token,
-                                          ca_cert      = self.openstack['cacert'],
-                                          region_name  = self.openstack['region_name'],
-                                          insecure     = self.openstack['insecure'])
+           neutron = client.Client(self.api_version, session=self.session, region_name=self.region_name)
         except Exception as e:
            self.exit_error('cannot load ' + str(e))
 
         try:
-           result=neutron.list_agents(host=self.host,binary=self.binary)
+           result = neutron.list_agents(host=self.host, binary=self.binary)
         except Exception as e:
-           self.exit_error(str(e))
+           self.exit_error('list_agents: ' + str(e))
 
-        stati=dict(up=0, disabled=0, down=0, total=0)
+        stati = dict(up=0, disabled=0, down=0, total=0)
 
         for agent in result['agents']:
            stati['total'] += 1
@@ -100,11 +77,11 @@ def main():
     argp.add_argument( '--critical_down', metavar='RANGE', default='0',
                       help='return critical if number of down agents is outside RANGE (default: 0, always critical if any')
 
-    argp.add_argument('--binary', 
+    argp.add_argument('--binary',
                     dest='binary',
                     default='',
                     help='filter agent binary')
-    argp.add_argument('--host', 
+    argp.add_argument('--host',
                     dest='host',
                     default='',
                     help='filter hostname')
@@ -117,10 +94,8 @@ def main():
         osnag.ScalarContext('disabled', args.warn_disabled, args.critical_disabled),
         osnag.ScalarContext('down', args.warn_down, args.critical_down),
         osnag.ScalarContext('total', '0:', '@0'),
-        osnag.Summary(show=['up','disabled','down'])
-        )
+        osnag.Summary(show=['up','disabled','down']))
     check.main(verbose=args.verbose, timeout=args.timeout)
 
 if __name__ == '__main__':
     main()
-

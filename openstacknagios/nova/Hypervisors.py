@@ -14,45 +14,35 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#  
+#
 
-""" 
+"""
     Nagios/Icinga plugin to check nova hypervisors.
     This corresponds to the output of 'nova hypervisor-stats'
 """
 
-from novaclient.client import Client
-
 import openstacknagios.openstacknagios as osnag
+from novaclient import client
 
 class NovaHypervisors(osnag.Resource):
     """
     Determines the status of the nova hypervisors.
-
     """
-
     def __init__(self, host=None, args=None):
-        self.host   = host
-        self.openstack = self.get_openstack_vars(args=args)
+        self.host = host
+        osnag.Resource.__init__(self, args)
 
     def probe(self):
         try:
-           nova=Client('2', self.openstack['username'],
-                            self.openstack['password'], 
-                            self.openstack['tenant_name'],
-                            auth_url    = self.openstack['auth_url'],
-                            cacert      = self.openstack['cacert'],
-                            region_name = self.openstack['region_name'],
-                            insecure    = self.openstack['insecure'])
-
+           nova = client.Client(self.api_version, session=self.session, region_name=self.region_name)
         except Exception as e:
            self.exit_error(str(e))
 
         try:
            if self.host:
-              result=nova.hypervisors.get(nova.hypervisors.find(hypervisor_hostname=self.host))
+              result = nova.hypervisors.get(nova.hypervisors.find(hypervisor_hostname=self.host))
            else:
-              result=nova.hypervisors.statistics()
+              result = nova.hypervisors.statistics()
         except Exception as e:
            self.exit_error(str(e))
 
@@ -104,10 +94,8 @@ def main():
         osnag.ScalarContext('vcpus_percent', args.warn_vcpus_percent, args.critical_vcpus_percent),
         osnag.ScalarContext('memory_used', args.warn_memory, args.critical_memory),
         osnag.ScalarContext('memory_percent', args.warn_memory_percent, args.critical_memory_percent),
-        osnag.Summary(show=['memory_used','memory_percent', 'vcpus_used','vcpus_percent','running_vms'])
-        )
+        osnag.Summary(show=['memory_used','memory_percent', 'vcpus_used','vcpus_percent','running_vms']))
     check.main(verbose=args.verbose,  timeout=args.timeout)
 
 if __name__ == '__main__':
     main()
-

@@ -21,39 +21,26 @@
  The check will list endpoints and warn if there are more than expected.
 """
 
-import json
-import time
 import openstacknagios.openstacknagios as osnag
-
-import keystoneclient.v2_0.client as ksclient
-
+from keystoneclient import client
 
 class KeystoneEndpoints(osnag.Resource):
     """
     Nagios/Icinga plugin to check keystone.
-
     """
-
-    def __init__(self, args=None):
-        self.openstack = self.get_openstack_vars(args=args)
-        osnag.Resource.__init__(self)
 
     def probe(self):
         try:
-           keystone=ksclient.Client(username    = self.openstack['username'],
-                                    password    = self.openstack['password'],
-                                    tenant_name = self.openstack['tenant_name'],
-                                    auth_url    = self.openstack['auth_url'],
-                                    cacert      = self.openstack['cacert'],
-                                    region_name = self.openstack['region_name'],
-                                    insecure    = self.openstack['insecure'])
+           keystone = client.Client(version=self.api_version,
+                                    interface='public', session=self.session,
+                                    region_name=self.region_name)
         except Exception as e:
-           self.exit_error('cannot create keystone client')
+           self.exit_error('cannot create keystone client: ' + str(e))
 
         try:
-            endpoints = keystone.service_catalog.get_endpoints()
+            endpoints = keystone.endpoints.list()
         except Exception as e:
-            self.exit_error('cannot get endpoints')
+            self.exit_error('cannot get endpoints: ' + str(e))
 
         yield osnag.Metric('endpoints', len(endpoints), min=0)
 
@@ -72,10 +59,8 @@ def main():
     check = osnag.Check(
         KeystoneEndpoints(args=args),
         osnag.ScalarContext('endpoints', args.warn, args.critical),
-        osnag.Summary(show=['endpoints'])
-        )
+        osnag.Summary(show=['endpoints']))
     check.main(verbose=args.verbose, timeout=args.timeout)
 
 if __name__ == '__main__':
     main()
-

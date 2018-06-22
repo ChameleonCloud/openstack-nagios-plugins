@@ -14,7 +14,7 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#  
+#
 """
    Nagios plugin to check router status. Router status is an extended feature
    provided to neutron via astara. https://github.com/openstack/astara . This
@@ -24,41 +24,16 @@
 """
 
 import openstacknagios.openstacknagios as osnag
-
-import keystoneclient.v2_0.client as ks
-
 from neutronclient.neutron import client
-
 
 class NeutronRouters(osnag.Resource):
     """
     Determines the number down/build/active routers
-
     """
-
-    def __init__(self, args=None):
-        self.openstack = self.get_openstack_vars(args=args)
-        osnag.Resource.__init__(self)
 
     def probe(self):
         try:
-            k = ks.Client(username=self.openstack['username'],
-                          password=self.openstack['password'],
-                          tenant_name=self.openstack['tenant_name'],
-                          auth_url=self.openstack['auth_url'],
-                          cacert=self.openstack['cacert'],
-                          insecure=self.openstack['insecure'])
-        except Exception as e:
-            self.exit_error('cannot get token ' + str(e))
-         
-        try:
-            neutron = client.Client('2.0',
-                                    endpoint_url=k.service_catalog.url_for(
-                                        endpoint_type='public',
-                                        service_type='network'),
-                                    token=k.auth_token, 
-                                    ca_cert=self.openstack['cacert'],
-                                    insecure=self.openstack['insecure'])
+            neutron = client.Client(self.api_version, session=self.session, region_name=self.region_name)
         except Exception as e:
             self.exit_error('cannot load ' + str(e))
 
@@ -105,10 +80,8 @@ def main():
         osnag.ScalarContext('active'),
         osnag.ScalarContext('down', args.warn, args.critical),
         osnag.ScalarContext('build', args.warn_build, args.critical_build),
-        osnag.Summary(show=['active', 'down', 'build'])
-        )
+        osnag.Summary(show=['active', 'down', 'build']))
     check.main(verbose=args.verbose, timeout=args.timeout)
 
 if __name__ == '__main__':
     main()
-

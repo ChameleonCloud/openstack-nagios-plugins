@@ -14,7 +14,7 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#  
+#
 
 """
  Nagios/Icinga plugin to check keystone.
@@ -22,33 +22,18 @@
  time used.
 """
 
-import json
 import time
 import openstacknagios.openstacknagios as osnag
-
-import keystoneclient.v2_0.client as ksclient
-
+from keystoneclient.client import Client
 
 class KeystoneToken(osnag.Resource):
     """
     Nagios/Icinga plugin to check keystone.
-
     """
-
-    def __init__(self, args=None):
-        self.openstack = self.get_openstack_vars(args=args)
-        osnag.Resource.__init__(self)
-
     def probe(self):
         start = time.time()
         try:
-           keystone=ksclient.Client(username    = self.openstack['username'],
-                                    password    = self.openstack['password'],
-                                    tenant_name = self.openstack['tenant_name'],
-                                    auth_url    = self.openstack['auth_url'],
-                                    cacert      = self.openstack['cacert'],
-                                    region_name = self.openstack['region_name'],
-                                    insecure    = self.openstack['insecure'])
+           Client(session=self.session, region_name=self.region_name)
         except Exception as e:
            self.exit_error('cannot get token')
 
@@ -57,8 +42,6 @@ class KeystoneToken(osnag.Resource):
         yield osnag.Metric('gettime', get_time-start, min=0)
 
 
-
-         
 @osnag.guarded
 def main():
     argp = osnag.ArgumentParser(description=__doc__)
@@ -73,10 +56,8 @@ def main():
     check = osnag.Check(
         KeystoneToken(args=args),
         osnag.ScalarContext('gettime', args.warn, args.critical),
-        osnag.Summary(show=['gettime'])
-        )
+        osnag.Summary(show=['gettime']))
     check.main(verbose=args.verbose, timeout=args.timeout)
 
 if __name__ == '__main__':
     main()
-

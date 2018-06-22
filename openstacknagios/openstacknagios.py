@@ -14,71 +14,49 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#   
+#
 
-from nagiosplugin import Resource      as NagiosResource
-from nagiosplugin import Summary       as NagiosSummary
+from nagiosplugin import Resource as NagiosResource
+from nagiosplugin import Summary as NagiosSummary
 from nagiosplugin import Check
 from nagiosplugin import Metric
 from nagiosplugin import guarded
 from nagiosplugin import ScalarContext
 
-from argparse import ArgumentParser    as ArgArgumentParser
+from argparse import ArgumentParser as ArgArgumentParser
+
+from keystoneauth1 import adapter
+from keystoneauth1 import loading
 
 from os import environ as env
 import sys
 
-import ConfigParser
-
+DEFAULT_AUTH_TYPE = 'v3password'
+DEFAULT_API_VERSION = '2'
 
 class Resource(NagiosResource):
     """
-
-    Openstack specific
-
+    Base definition of OpenStack Nagios resource
     """
-
-    def get_openstack_vars(self,args=None):
-
-       os_vars = dict(username='', password='',tenant_name='',auth_url='', cacert='', region_name='')
-
-       if args.filename:
-          config = ConfigParser.RawConfigParser()
-          config.read(args.filename)
-          try:
-            for r in os_vars.keys():
-               try:
-                 os_vars[r]    = config.get('DEFAULT', r )
-               except:
-                 os_vars[r]    = None
-
-          except Exception as e:
-            self.exit_error(str(e) + ' Filename: ' + args.filename)
-          
-       else:
-          try: 
-            for r in os_vars.keys():
-               os_vars[r]    = env['OS_' + r.upper()]
-          except Exception as e:
-            self.exit_error('missing environment variable ' + str(e))
-
-       os_vars['insecure']=args.insecure
-       return os_vars
+    def __init__(self, args=None):
+        NagiosResource.__init__(self)
+        auth = loading.cli.load_from_argparse_arguments(args)
+        self.session = loading.session.load_from_argparse_arguments(args, auth=auth)
+        self.api_version = args.os_api_version
+        self.region_name = args.os_region_name
 
     def exit_error(self, text):
        print 'UNKNOWN - ' + text
        sys.exit(3)
 
 
-
 class Summary(NagiosSummary):
-    """Create status line with info
-
+    """
+    Create status line with info
     """
     def __init__(self, show):
         self.show = show
-        NagiosSummary.__init__(self)
-
+        super(NagiosSummary, self).__init__()
 
     def ok(self, results):
         return '[' + ' '.join(
@@ -90,24 +68,27 @@ class Summary(NagiosSummary):
 
 
 class ArgumentParser(ArgArgumentParser):
+    def __init__(self, description, epilog=''):
+        ArgArgumentParser.__init__(self, description=description, epilog=epilog)
+        argv = sys.argv[1:]
+        loading.cli.register_argparse_arguments(self, argv, DEFAULT_AUTH_TYPE)
+        loading.session.register_argparse_arguments(self)
 
-    def __init__(self,description, epilog=''):
-        ArgArgumentParser.__init__(self,description=description, epilog=epilog)
+        # (diurnalist) It would be nicer to load adapter arguments automatically
+        # using `loading.adapter.register_argparse_arguments`, but there is
+        # currently no way to automatically _load_ those arguments after they've
+        # been registered. Also, using the adapter doesn't work very well with
+        # all clients (neutronclient in particular hard-codes a version prefix
+        # into all endpoint URLs, breaking the version discovery done in the
+        # adapter by default.) So we just provide a few arguments that are
+        # useful to us and ignore the rest.
+        self.add_argument('--os-api-version', default=DEFAULT_API_VERSION,
+                          help='Minimum Major API version within a given '
+                               'Major API version for client selection and '
+                               'endpoint URL discovery.')
+        self.add_argument('--os-region-name',
+                          help='The default region_name for endpoint URL '
+                               'discovery.')
 
-        self.add_argument('--filename',
-                      help='file to read openstack credentials from. If not set it take the environment variables' )
         self.add_argument('-v', '--verbose', action='count', default=0,
-                      help='increase output verbosity (use up to 3 times)'
-                           '(not everywhere implemented)')
-        self.add_argument('--timeout', type=int, default=10,
-                      help='amount of seconds until execution stops with unknown state (default 10 seconds)')
-        self.add_argument('--insecure',
-                      default=False,
-                      action='store_true',
-                      help="Explicitly allow client to perform \"insecure\" "
-                           "SSL (https) requests. The server's certificate will "
-                           "not be verified against any certificate authorities. "
-                           "This option should be used with caution.")
-        self.add_argument('--cacert',
-                      help="Specify a CA bundle file to use in verifying a TLS"
-                           "(https) server certificate.")
+                          help='increase output verbosity (use up to 3 times)')

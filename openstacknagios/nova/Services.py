@@ -14,7 +14,7 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#  
+#
 
 """
     Nagios/Icinga plugin to check running nova services.
@@ -22,41 +22,30 @@
     This corresponds to the output of 'nova service-list'.
 """
 
+from novaclient import client
 import openstacknagios.openstacknagios as osnag
-
-from novaclient.client import Client
-
 
 class NovaServices(osnag.Resource):
     """
     Determines the status of the nova services.
     """
-
     def __init__(self, binary=None, host=None, args=None):
         self.binary = binary
         self.host   = host
-        self.openstack = self.get_openstack_vars(args=args)
-        osnag.Resource.__init__(self)
+        osnag.Resource.__init__(self, args)
 
     def probe(self):
-
         try:
-           nova=Client('2', self.openstack['username'], 
-                            self.openstack['password'], 
-                            self.openstack['tenant_name'],
-                            auth_url    = self.openstack['auth_url'],
-                            cacert      = self.openstack['cacert'],
-                            region_name = self.openstack['region_name'],
-                            insecure    = self.openstack['insecure'])
+           nova = client.Client(self.api_version, session=self.session, region_name=self.region_name)
         except Exception as e:
            self.exit_error(str(e))
 
         try:
-           result=nova.services.list(host=self.host,binary=self.binary)
+           result = nova.services.list(host=self.host, binary=self.binary)
         except Exception as e:
            self.exit_error(str(e))
 
-        stati=dict(up=0, disabled=0, down=0, total=0)
+        stati = dict(up=0, disabled=0, down=0, total=0)
 
         for agent in result:
            stati['total'] += 1
@@ -88,11 +77,11 @@ def main():
     argp.add_argument( '--critical_down', metavar='RANGE', default='0',
                       help='return critical if number of down agents is outside RANGE (default: 0, always critical if any')
 
-    argp.add_argument('--binary', 
+    argp.add_argument('--binary',
                     dest='binary',
                     default=None,
                     help='filter agent binary')
-    argp.add_argument('--host', 
+    argp.add_argument('--host',
                     dest='host',
                     default=None,
                     help='filter hostname')
@@ -105,11 +94,8 @@ def main():
         osnag.ScalarContext('disabled', args.warn_disabled, args.critical_disabled),
         osnag.ScalarContext('down', args.warn_down, args.critical_down),
         osnag.ScalarContext('total', '0:', '@0'),
-        osnag.Summary(show=['up','disabled','down','total'])
-        )
+        osnag.Summary(show=['up','disabled','down','total']))
     check.main(verbose=args.verbose,  timeout=args.timeout)
 
 if __name__ == '__main__':
     main()
-
-

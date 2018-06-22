@@ -54,7 +54,7 @@ def main():
     args = argp.parse_args()
 
     check = osnag.Check(
-        NovaImages(args),
+        NovaImages(args=args),
         osnag.ScalarContext('gettime', args.warn, args.critical),
         osnag.Summary(show=['gettime'])
     )

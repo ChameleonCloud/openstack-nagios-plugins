@@ -70,10 +70,11 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/technical.html#install-requires-vs-requirements-files
     install_requires=[
-        'nagiosplugin', 
-        'python-novaclient', 
-        'python-keystoneclient', 
-        'python-neutronclient', 
+        'gnocchiclient',
+        'nagiosplugin',
+        'python-novaclient',
+        'python-keystoneclient',
+        'python-neutronclient',
         'python-cinderclient',
         'python-ceilometerclient',
         'python-ironicclient',
@@ -95,6 +96,7 @@ setup(
             'check_keystone-token=openstacknagios.keystone.Token:main',
             'check_keystone-endpoints=openstacknagios.keystone.Endpoints:main',
             'check_ceilometer-statistics=openstacknagios.ceilometer.Statistics:main',
+            'check_gnocchi-metrics=openstacknagios.gnocchi.Metrics:main',
             'check_rally-results=openstacknagios.rally.Results:main',
             'check_ironic-nodes=openstacknagios.ironic.Nodes:main',
         ],

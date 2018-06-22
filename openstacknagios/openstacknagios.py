@@ -29,6 +29,7 @@ from keystoneauth1 import adapter
 from keystoneauth1 import loading
 
 from os import environ as env
+from os import getenv
 import sys
 
 DEFAULT_AUTH_TYPE = 'v3password'
@@ -40,9 +41,10 @@ class Resource(NagiosResource):
     """
     def __init__(self, args=None):
         NagiosResource.__init__(self)
-        auth = loading.cli.load_from_argparse_arguments(args)
-        self.session = loading.session.load_from_argparse_arguments(args, auth=auth)
+        self.auth_plugin = loading.cli.load_from_argparse_arguments(args)
+        self.session = loading.session.load_from_argparse_arguments(args, auth=self.auth_plugin)
         self.api_version = args.os_api_version
+        self.interface = args.os_interface
         self.region_name = args.os_region_name
 
     def exit_error(self, text):
@@ -82,11 +84,13 @@ class ArgumentParser(ArgArgumentParser):
         # into all endpoint URLs, breaking the version discovery done in the
         # adapter by default.) So we just provide a few arguments that are
         # useful to us and ignore the rest.
-        self.add_argument('--os-api-version', default=DEFAULT_API_VERSION,
+        self.add_argument('--os-api-version',
+                          default=getenv('OS_API_VERSION', DEFAULT_API_VERSION),
                           help='Minimum Major API version within a given '
                                'Major API version for client selection and '
                                'endpoint URL discovery.')
-        self.add_argument('--os-region-name',
+        self.add_argument('--os-interface', default=getenv('OS_INTERFACE'))
+        self.add_argument('--os-region-name', default=getenv('OS_REGION_NAME'),
                           help='The default region_name for endpoint URL '
                                'discovery.')
 

@@ -118,7 +118,7 @@ def main():
     args = argp.parse_args()
 
     check = osnag.Check(
-        GnocchiMetrics(metric=args.metric, since=args.since, limit=limit,
+        GnocchiMetrics(metric=args.metric, since=args.since, limit=args.limit,
                        args=args),
         osnag.ScalarContext('measures', args.warn, args.critical),
         osnag.Summary(show=['measures']))

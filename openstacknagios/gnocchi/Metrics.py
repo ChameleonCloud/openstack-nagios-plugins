@@ -25,10 +25,21 @@
 
 import openstacknagios.openstacknagios as osnag
 from gnocchiclient import client
+from nagiosplugin import Summary as NagiosSummary
+from nagiosplugin import Ok
 
 from datetime import datetime
 from datetime import timedelta
 import re
+
+class GnocchiMetricsSummary(NagiosSummary):
+    def ok(self, results):
+        return 'all resources reporting metrics'
+
+    def problem(self, results):
+        resources = [r.metric.name for r in results if r.state != Ok]
+        return '{num} resources have not reported metrics: {list}'.format(num=len(resources),
+                                                                          list=', '.join(resources))
 
 class GnocchiMetrics(osnag.Resource):
     """
@@ -36,16 +47,28 @@ class GnocchiMetrics(osnag.Resource):
     """
     DURATION_REGEX = re.compile(r'((?P<hours>\d+?)h)?((?P<minutes>\d+?)m)?')
 
-    def __init__(self, metric=None, since=None, limit=None, args=None):
+    def __init__(self, metric=None, since=None, resources=None,
+                 resources_file=None, args=None):
         self.metric = metric
         self.since = self._parse_duration(since)
-        self.limit = limit
+        self.resources = None
+
+        if resources:
+            self.resources = resources.split(',')
+        elif resources_file:
+            with open(resources_file, 'r') as f:
+                self.resources = [line.rstrip('\n') for line in f]
+
+        if not self.resources:
+            self.exit_error('no Gnocchi resources specified!')
+
         osnag.Resource.__init__(self, args=args)
 
     def probe(self):
         try:
             session_options = dict(auth=self.auth_plugin)
-            adapter_options = dict(interface=self.interface)
+            adapter_options = dict(interface=self.interface,
+                                   region_name=self.region_name)
             gnocchi = client.Client(self.api_version,
                                     adapter_options=adapter_options,
                                     session_options=session_options)
@@ -54,35 +77,12 @@ class GnocchiMetrics(osnag.Resource):
 
         now = datetime.utcnow()
         some_time_ago = now - self.since
-        query = {
-            '=': {
-                'ended_at': None
-            }
-        }
 
-        try:
-            sorts = ['started_at:desc']
-            # (diurnalist)
-            # We try to limit the query to Gnocchi to only include resources
-            # still active (ended_at = None), but there is no way to only
-            # ask for resources having a given metric. We therefore might end
-            # up throwing out lots of resources. Set a high limit for this
-            # reason. If it ends up being possible to query based on the
-            # existence of a metric name, we should change to do that.
-            resources = gnocchi.resource.search(query=query, limit=self.limit, sorts=sorts)
-        except Exception as e:
-            self.exit_error('cannot load: ' + str(e))
-
-        measures = []
-        for r in resources:
-            if not self.metric in r['metrics']:
-                continue
-
-            measures += gnocchi.metric.get_measures(self.metric,
-                                                   resource_id=r.get('id'),
+        for resource_id in self.resources:
+            measures = gnocchi.metric.get_measures(self.metric,
+                                                   resource_id=resource_id,
                                                    start=some_time_ago)
-
-        yield osnag.Metric('measures', len(measures), min=0)
+            yield osnag.Metric(resource_id, len(measures), context='measures', min=0)
 
     def _parse_duration(self, duration_str):
         parts = self.DURATION_REGEX.match(duration_str)
@@ -105,10 +105,15 @@ def main():
 
     argp.add_argument('-m', '--metric', metavar='METRIC_NAME', required=True,
                       help='metric name (required)')
-    argp.add_argument('-s', '--since', metavar='DURATION', default='5m',
+    argp.add_argument('-s', '--since', metavar='DURATION', default='1h',
                       help='time range of metrics to examine')
-    argp.add_argument('--resource-limit', metavar='LIMIT', default=100,
-                      help='max number of resources to poll metrics for')
+    argp.add_argument('-r', '--resources', metavar='RESOURCE_LIST',
+                      help=('list of resources to poll metrics for (comma-separated). '
+                            'Either this or --resources-file must be used.'))
+    argp.add_argument('-f', '--resources-file', metavar='FILE',
+                      help=('file with list of resources to poll metrics for. '
+                            'Each resource should be on a separate line. '
+                            'Not used if --resources is specified.'))
 
     argp.add_argument('-w', '--warn', metavar='RANGE', default='1:',
                       help='return warning if number of metrics is outside RANGE (default: 1:, warn if 0)')
@@ -118,10 +123,12 @@ def main():
     args = argp.parse_args()
 
     check = osnag.Check(
-        GnocchiMetrics(metric=args.metric, since=args.since, limit=args.resource_limit,
+        GnocchiMetrics(metric=args.metric, since=args.since,
+                       resources=args.resources,
+                       resources_file=args.resources_file,
                        args=args),
         osnag.ScalarContext('measures', args.warn, args.critical),
-        osnag.Summary(show=['measures']))
+        GnocchiMetricsSummary())
     check.main(verbose=args.verbose, timeout=args.timeout)
 
 if __name__ == '__main__':

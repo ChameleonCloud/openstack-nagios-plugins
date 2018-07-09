@@ -60,9 +60,52 @@ optional arguments:
 
 Admin rights are necessary to run this check.
 
+check\_gnocchi-metrics
+----------------------
+Nagios/Icinga plugin to check gnocchi metric measurements.
+Currently supports checking for the number of measurements reported for a
+given metric for monitoring/operational purposes.
+
+optional arguments:
+```
+  -w RANGE, --warn RANGE
+                        return warning if number of measurements for metric is
+                        outside RANGE (default: 1:, warn if 0)
+  -c RANGE, --critical RANGE
+                        return critical if number of measurements for metric is
+                        outside RANGE (default: 0:, never critical)
+  -m METRIC_NAME, --metric METRIC_NAME
+                        metric name (required)
+  -s DURATION, --since DURATION
+                        time range of metrics to examine (default: 1h).
+                        Has duration format, like '20m' or '2h'
+  -r RESOURCE_LIST, --resources RESOURCE_LIST
+                        list of resources to poll metrics for (comma-separated).
+                        Either this or --resources-file must be used.
+  -f FILE, --resources-file FILE
+                        file with list of resources to poll metrics for.
+                        Each resource should be on a separate line.
+                        Not used if --resources is specified.
+```
+
+check\_gnocchi-status
+---------------------
+Nagios/Icinga plugin to check gnocchi status.
+Checks that number of pending measurements is within a given threshold.
+
+optional arguments:
+```
+  -w RANGE, --warn RANGE
+                      return warning if number of total pending measurements is
+                      outside RANGE (default: 1:, warn if 0)
+  -c RANGE, --critical RANGE
+                      return critical if number of total pending measurements is
+                      outside RANGE (default: 0:, never critical)
+```
+
 check\_neutron-agents
 --------------------
-Nagios/Icinga plugin to check running neutron agents. 
+Nagios/Icinga plugin to check running neutron agents.
 This corresponds to the output of 'neutron agent-list'.
 
 optional arguments:
@@ -95,7 +138,7 @@ check\_neutron-floatingips
 -------------------------
 
 Nagios/Icinga plugin to check floating ip's.
-Counts the assigned ip's (= used + unused). 
+Counts the assigned ip's (= used + unused).
 
 This corresponds to the output of 'neutron floatingip-list'.
 

@@ -17,19 +17,8 @@
 #
 
 import subprocess
+import json
 import openstacknagios.openstacknagios as osnag
-from multiprocessing import Pool
-
-def check_console(node):
-
-    try:
-        cmd = "ironic node-get-console %s | awk '/(True|False)/ { print $(NF - 1); }'" % (
-            node.strip())
-        out = subprocess.check_output(cmd, shell=True)
-        return out.strip()
-    except Exception as e:
-        print(e)
-        return None
 
 class Consoles(osnag.Resource):
     """
@@ -37,28 +26,20 @@ class Consoles(osnag.Resource):
     """
 
     def probe(self):
+        # Getting the Python Ironic client to talk SSL is a dark art
+        # Use the command line client instead
         try:
-            cmd = "ironic node-list | awk '/(True|False)/ { print $(2); }'"
+            cmd = "ironic --json node-list --detail --associated=true"
             out = subprocess.check_output(cmd, shell=True)
+            nodes = json.loads(out)
+
         except Exception as e:
             self.exit_error(str(e))
 
-        lines = out.splitlines()[1:]
-        stati = dict(maintenance=0, total=0) 
-
-        def chunks(l, n):
-            for i in range(0, len(l), n):
-                yield l[i:i + n]
-
-        for nodes_chunk in chunks(lines, 10):
-
-            p = Pool(len(nodes_chunk))
-
-            results = (p.map(check_console, nodes_chunk))
-            stati['total'] += len(results)
-
-            disabled = list(filter(lambda x: x == 'False', results))
-            stati['maintenance'] += len(disabled)
+        stati = dict(disabled=0, total=0)
+        stati['total'] = len(nodes)
+        disabled = [x for x in nodes if not x[u'console_enabled']]
+        stati['disabled'] = len(disabled)
 
         for r in stati.keys():
             yield osnag.Metric(r, stati[r], min=0)
@@ -69,17 +50,17 @@ def main():
     argp = osnag.ArgumentParser(description=__doc__)
 
     argp.add_argument('--warn', metavar='RANGE', default='@1:',
-                      help='return warning if number of nodes in maintenance is outside RANGE (default: @1:, warn if any node in maintenance)')
+                      help='return warning if number of associated nodes with disabled consoles is outside RANGE (default: @1:, warn if any node in maintenance)')
     argp.add_argument('--critical', metavar='RANGE', default='0:',
-                      help='return critical if number of nodes in maintenance is outside RANGE (default: 0:, never critical)')
+                      help='return critical if number of associated nodes with disabled consoles is outside RANGE (default: 0:, never critical)')
 
     args = argp.parse_args()
 
     check = osnag.Check(
         Consoles(args=args),
-        osnag.ScalarContext('maintenance', args.warn, args.critical),
+        osnag.ScalarContext('disabled', args.warn, args.critical),
         osnag.ScalarContext('total', '0:', '@0'),
-        osnag.Summary(show=['maintenance', 'total']))
+        osnag.Summary(show=['disabled', 'total']))
     check.main(verbose=args.verbose, timeout=args.timeout)
 
 if __name__ == '__main__':

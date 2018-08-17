@@ -21,6 +21,7 @@ import openstacknagios.openstacknagios as osnag
 from multiprocessing import Pool
 
 def check_console(node):
+
     try:
         cmd = "ironic node-get-console %s | awk '/(True|False)/ { print $(NF - 1); }'" % (
             node.strip())

@@ -100,6 +100,7 @@ setup(
             'check_gnocchi-status=openstacknagios.gnocchi.Status:main',
             'check_rally-results=openstacknagios.rally.Results:main',
             'check_ironic-nodes=openstacknagios.ironic.Nodes:main',
+            'check_ironic-node-consoles=openstacknagios.ironic.Consoles:main',
         ],
     },
 )
